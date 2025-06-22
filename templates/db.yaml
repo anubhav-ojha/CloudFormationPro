@@ -1,0 +1,170 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create an RDS instance for Microsoft SQL Server in the private subnet of a VPC.
+
+Parameters:
+  EnvironmentName:
+    Description: Name of the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - qa
+  VPCName:
+    Type: String
+    Description: Name of the VPC
+    Default: cru-wine-vpc  
+  DBInstanceIdentifierName:
+    Type: String
+    Default: cru-ms-sql-db
+    Description: The identifier for the RDS instance.
+  DBInstanceClassName:
+    Type: String
+    Default: db.t3.small
+    Description: The instance class for the RDS instance.
+    AllowedValues:
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
+      - db.t3.xlarge
+      - db.t3.2xlarge
+  DBEngineName:
+    Type: String
+    Default: sqlserver-ex
+    Description: The name of the database engine.
+    AllowedValues:
+      - sqlserver-ex
+      - sqlserver-se
+      - sqlserver-ee
+  DBEngineVersion:
+    Type: String
+    Default: 16.00.4165.4.v1
+    Description: The version of the database engine.
+    AllowedValues:
+      - 16.00.4165.4.v1
+      - 16.00.4150.1.v1
+      - 16.00.4140.3.v1
+      - 16.00.4135.4.v1
+  DBPort:
+    Type: Number
+    Default: 1433
+    Description: The port for the database.
+  DBStorageType:
+    Type: String
+    Default: gp3
+    Description: The storage type for the RDS instance.
+    AllowedValues:
+      - gp3
+      - gp2
+      - Standard
+  DBAllocatedStorage:
+    MinValue: 20
+    MaxValue: 50
+    Type: Number
+    Default: 30
+    Description: The size of the database in GB.
+  MaxDBAllocatedStorage:
+    Type: Number
+    Default: 50
+    Description: The maximum size of the database in GB.
+  DatabaseSubnetGroupName:
+    Type: String
+    Default: cru-ms-sql-db-subnet-group
+    Description: The name of the database subnet group.
+  DBUsername:
+    Description: The database admin account username
+    Type: String
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: Must begin with a letter and contain only alphanumeric  
+
+Resources:
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Ref DatabaseSubnetGroupName
+      DBSubnetGroupDescription: Subnet group for the RDS instance
+      SubnetIds:
+        - !ImportValue
+          Fn::Sub: ${EnvironmentName}-${VPCName}-private-subnet1-id
+        - !ImportValue
+          Fn::Sub: ${EnvironmentName}-${VPCName}-private-subnet2-id
+        - !ImportValue
+          Fn::Sub: ${EnvironmentName}-${VPCName}-private-subnet3-id
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-DatabaseSubnetGroup
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: AccountId
+          Value: !Sub ${AWS::AccountId}
+        - Key: Region
+          Value: !Sub ${AWS::Region}  
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref DBInstanceIdentifierName
+      DBInstanceClass: !Ref DBInstanceClassName
+      MasterUsername: !Ref DBUsername
+      Engine: !Ref DBEngineName
+      EngineVersion: !Ref DBEngineVersion
+      ManageMasterUserPassword: true
+      Port: !Ref DBPort
+      StorageType: !Ref DBStorageType
+      AllocatedStorage: !Ref DBAllocatedStorage
+      MaxAllocatedStorage: !Ref MaxDBAllocatedStorage
+      EnableCloudwatchLogsExports:
+        - error
+      NetworkType: IPV4
+      PubliclyAccessible: false
+      MultiAZ: false     #It will stop replication 
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      VPCSecurityGroups:
+        - !ImportValue
+          Fn::Sub: ${EnvironmentName}-${VPCName}-database-security-group-id
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-RDSInstance
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: AccountId
+          Value: !Sub ${AWS::AccountId}
+        - Key: Region
+          Value: !Sub ${AWS::Region}
+  
+
+Outputs:
+  AccountId:
+    Description: AWS Account ID
+    Value: !Ref AWS::AccountId
+  RegionName:
+    Description: AWS Region Name
+    Value: !Ref AWS::Region
+  StackId:
+    Description: Current Stack ID
+    Value: !Ref AWS::StackId
+  StackName:
+    Description: Current Stack Name
+    Value: !Ref AWS::StackName
+  Environment:
+    Description: Environment name
+    Value: !Ref EnvironmentName
+  DatabaseEndpoint:
+    Description: Endpoint for the RDS instance
+    Value: !GetAtt RDSInstance.Endpoint.Address
+  DatabasePort:
+    Description: Port for the RDS instance
+    Value: !GetAtt RDSInstance.Endpoint.Port
+  DBInstanceIdentifierName:
+    Description: Identifier for the RDS instance
+    Value: !GetAtt RDSInstance.DBInstanceIdentifier
+    Export:
+      Name: !Sub ${EnvironmentName}-db-instance-identifier
+
+  RDSAvailabilityZone:
+    Description: The AZ of the deployed RDS instance
+    Value: !GetAtt RDSInstance.AvailabilityZone
+    Export:
+      Name: RDS-AZ-Export    

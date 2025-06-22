@@ -1,0 +1,136 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create a bastion host in the public subnet for accessing a private Microsoft SQL Server RDS.
+
+Mappings:
+  RegionAMIConfig:   #Don't change AMI
+    eu-west-1:
+      AMI: ami-032a56ad5e480189c
+    eu-west-2:
+      AMI: ami-06cff85354b67982b
+
+Parameters:
+  EnvironmentName:
+    Description: Name of the environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - test
+  InstanceTypeParam:
+    Description: Type of the EC2 instance
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+  BastionHostEC2InstanceName:
+    Description: The name of the bastion host EC2 instance
+    Type: String
+    Default: bastion-host-server
+  BastionHostSSHKeyPair:
+    Description: The name of the SSH key pair for the bastion host
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: bastion-host-key
+  VPCName:
+    Type: String
+    Description: Name of the VPC
+    Default: cru-wine-vpc
+  AvailabilityZone:  # not required as AZ is decided by subnet, a subnet is always mapped to exactly one Availability Zone (AZ).
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: Required Availability Zone for the Bastion Host  
+
+Resources:
+  BastionHostEC2InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EnvironmentName}-${BastionHostEC2InstanceName}-role
+      Description: IAM Role for the Bastion host EC2 instance
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Policies:
+        - PolicyName: !Sub ${EnvironmentName}-${BastionHostEC2InstanceName}-SSM-Parameters-Access-Policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameters
+                  - ssm:GetParameter
+                  - ssm:GetParametersByPath
+                  - ssm:PutParameter
+                  - ssm:AddTagsToResource
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/*
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-${BastionHostEC2InstanceName}-role
+  BastionHostEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ${EnvironmentName}-${BastionHostEC2InstanceName}-instance-profile
+      Path: /
+      Roles:
+        - !Ref BastionHostEC2InstanceRole
+  BastionHostEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceTypeParam
+      ImageId: !FindInMap
+        - RegionAMIConfig
+        - !Ref AWS::Region
+        - AMI
+      # Monitoring: true
+      IamInstanceProfile: !Ref BastionHostEC2InstanceProfile
+      KeyName: !Ref BastionHostSSHKeyPair
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          DeleteOnTermination: true
+          SubnetId: !ImportValue
+            Fn::Sub: ${EnvironmentName}-${VPCName}-public-subnet2-id
+          GroupSet:
+            - !ImportValue
+              Fn::Sub: ${EnvironmentName}-${VPCName}-bastion-host-security-group-id
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-${BastionHostEC2InstanceName}
+        - Key: Environment
+          Value: !Ref EnvironmentName
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          apt update -y
+          apt upgrade -y
+          apt install python3-pip unzip less -y
+          curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip -q awscliv2.zip
+          ./aws/install
+          rm -r awscliv2.zip
+          curl -sSL https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/trusted.gpg.d/microsoft.asc
+          echo "deb [arch=amd64] https://packages.microsoft.com/ubuntu/22.04/prod jammy main" | tee /etc/apt/sources.list.d/mssql-release.list
+          apt update -y
+          apt install mssql-tools -y
+          apt install unixodbc-dev -y
+          echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+          source ~/.bashrc
+
+Outputs:
+  BastionHostPublicIP:
+    Description: Public IP address of the bastion host ec2 instance.
+    Value: !GetAtt BastionHostEC2Instance.PublicIp
+  BastionHostPrivateIP:
+    Description: Private IP address of the bastion host ec2 instance.
+    Value: !GetAtt BastionHostEC2Instance.PrivateIp

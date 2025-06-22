@@ -1,0 +1,134 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create an EventBridge schedule that start the execution of the cru-integrations-db-update Lambda function in a regular interval.
+
+Parameters:
+  EnvironmentName:
+    Description: Name of the environment
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - prod
+      - test
+  EventBridgeSchedulerName:
+    Description: Name of the event bridge scheduler
+    Type: String
+    Default: cru-integrations-flow-eventbridge-scheduler
+  TargetLambdaFunctionName:
+    Description: Name of the target lambda function
+    Type: String
+    Default: cru-integrations-data-poller
+  
+  ScheduleExpression:
+    Description: Cron expression for schedule
+    Type: String
+    Default: cron(0 5 * * ? *)  
+
+  TargetInput:
+    Description: JSON input payload for the EventBridge Scheduler target
+    Type: String
+    Default: >
+      [
+        {
+          "countryCode": "UK",
+          "method": "GET",
+          "url": "https://v22-services.hub.wine/xml/CWUK-DATA-BACKU-564FD5/data-backup/huborganisation"
+        },
+        {
+          "countryCode": "FR",
+          "method": "GET",
+          "url": "https://v22-services.hub.wine/xml/CWFR-DATAFEEDFO-1E7712/data-backup/huborganisation"
+        }
+      ]
+
+  MaxEventAge:
+    Description: Max event age in seconds
+    Type: Number
+    Default: 7200
+
+  MaxRetryAttempts:
+    Description: Max retry attempts
+    Type: Number
+    Default: 5
+
+  SchedulerState:
+    Description: State of the scheduler (ENABLED or DISABLED)
+    Type: String
+    Default: ENABLED
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+  
+
+Resources:
+  EventBridgeSchedulerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${EventBridgeSchedulerName}-${EnvironmentName}-Execution-role
+      Description: Role for EventBridge Scheduler
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Path: /service-role/
+      Policies:
+        - PolicyName: !Sub ${EventBridgeSchedulerName}-Execution-Policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TargetLambdaFunctionName}
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TargetLambdaFunctionName}:*
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-${EventBridgeSchedulerName}-Execution-role
+        - Key: Environment
+          Value: !Ref EnvironmentName        
+  EventBridgeScheduler:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Description: EventBridge Scheduler for the cru integrations flow
+      Name: !Sub ${EnvironmentName}-${EventBridgeSchedulerName}
+      ScheduleExpression: !Ref ScheduleExpression
+      State: !Ref SchedulerState
+      FlexibleTimeWindow:
+        Mode: "OFF"
+      Target:
+        Arn: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${TargetLambdaFunctionName}
+        RetryPolicy:
+          MaximumEventAgeInSeconds: !Ref MaxEventAge
+          MaximumRetryAttempts: !Ref MaxRetryAttempts
+        RoleArn: !GetAtt EventBridgeSchedulerExecutionRole.Arn
+        Input: !Ref TargetInput   
+Outputs:
+  AccountId:
+    Description: AWS Account ID
+    Value: !Ref AWS::AccountId
+  RegionName:
+    Description: AWS Region Name
+    Value: !Ref AWS::Region
+  StackId:
+    Description: Current Stack ID
+    Value: !Ref AWS::StackId
+  StackName:
+    Description: Current Stack Name
+    Value: !Ref AWS::StackName
+  Environment:
+    Description: Environment name
+    Value: !Ref EnvironmentName
+  EventBridgeSchedulerArn:
+    Description: ARN of the EventBridge Scheduler
+    Value: !GetAtt EventBridgeScheduler.Arn
+    Export:
+      Name: !Sub ${EnvironmentName}-EventBridgeSchedulerArn
+  EventBridgeSchedulerName:
+    Description: Name of the EventBridge Scheduler
+    Value: !Ref EventBridgeSchedulerName

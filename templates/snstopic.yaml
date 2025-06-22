@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Simple SNS Topic with Email Subscription
+
+Parameters:
+  NotificationEmail:
+    Type: String
+    Description: Email address to subscribe to the SNS topic
+    Default: manish.kumar@cru-wine.com
+
+Resources:
+
+  ### SNS Topic
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: MySimpleSnsTopic
+
+  ### Email Subscription to the SNS Topic
+  MySNSTopicSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+      TopicArn: !Ref MySNSTopic
+
+Outputs:
+  TopicArn:
+    Description: ARN of the SNS Topic
+    Value: !Ref MySNSTopic
+  SubscribedEmail:
+    Description: The email address subscribed to the topic
+    Value: !Ref NotificationEmail
