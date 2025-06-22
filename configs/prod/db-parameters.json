@@ -1,0 +1,51 @@
+[
+    {
+        "ParameterKey": "EnvironmentName",
+        "ParameterValue": "prod"
+    },
+    {
+      "ParameterKey": "DBInstanceIdentifierName",
+      "ParameterValue": "prod-cru-ms-sql-db"
+    },
+    {
+      "ParameterKey": "DBInstanceClassName",
+      "ParameterValue": "db.t3.micro"
+    },
+    {
+      "ParameterKey": "DBEngineName",
+      "ParameterValue": "sqlserver-ex"
+    },
+    {
+      "ParameterKey": "DBEngineVersion",
+      "ParameterValue": "16.00.4165.4.v1"
+    },
+    {
+      "ParameterKey": "DBMasterUsername",
+      "ParameterValue": "admin"
+    },
+    {
+      "ParameterKey": "DBPort",
+      "ParameterValue": "1433"
+    },
+    {
+      "ParameterKey": "DBStorageType",
+      "ParameterValue": "gp3"
+    },
+    {
+      "ParameterKey": "DBAllocatedStorage",
+      "ParameterValue": "30"
+    },
+    {
+      "ParameterKey": "MaxDBAllocatedStorage",
+      "ParameterValue": "50"
+    },
+    {
+      "ParameterKey": "DBBackupRetentionPeriod",
+      "ParameterValue": "0"
+    },
+    {
+      "ParameterKey": "DatabaseSubnetGroupName",
+      "ParameterValue": "prod-cru-ms-sql-db-subnet-group"
+    }
+  ]
+  

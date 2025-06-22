@@ -1,0 +1,39 @@
+[
+    {
+      "ParameterKey": "EnvironmentName",
+      "ParameterValue": "dev"
+    },
+    {
+      "ParameterKey": "VPCName",
+      "ParameterValue": "cru-wine-vpc"
+    },
+    {
+      "ParameterKey": "InstanceTypeParam",
+      "ParameterValue": "t3.micro"
+    },
+    {
+      "ParameterKey": "BastionHostEC2InstanceName",
+      "ParameterValue": "bastion-host-server"
+    },
+    {
+      "ParameterKey": "BastionHostSSHKeyPair",
+      "ParameterValue": "prod-bastion-host-key"
+    },
+    {
+      "ParameterKey": "RDSAZ",
+      "ParameterValue": "us-east-1a"
+    },
+    {
+      "ParameterKey": "PublicSubnetA",
+      "ParameterValue": "subnet-0abc123abc123abc1"
+    },
+    {
+      "ParameterKey": "PublicSubnetB",
+      "ParameterValue": "subnet-0abc123abc123abc2"
+    },
+    {
+      "ParameterKey": "PublicSubnetC",
+      "ParameterValue": "subnet-0abc123abc123abc3"
+    }
+  ]
+  

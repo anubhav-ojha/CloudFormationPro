@@ -1,0 +1,34 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "dev"
+  },
+  {
+    "ParameterKey": "EventBridgeSchedulerName",
+    "ParameterValue": "cru-integrations-flow-eventbridge-scheduler"
+  },
+  {
+    "ParameterKey": "TargetLambdaFunctionName",
+    "ParameterValue": "cru-integrations-data-poller"
+  },
+  {
+    "ParameterKey": "ScheduleExpression",
+    "ParameterValue": "cron(0 5 * * ? *)"
+  },
+  {
+    "ParameterKey": "TargetInput",
+    "ParameterValue": "[{\"countryCode\": \"UK\", \"method\": \"GET\", \"url\": \"https://v22-services.hub.wine/xml/CWUK-DATA-BACKU-564FD5/data-backup/huborganisation\"}, {\"countryCode\": \"FR\", \"method\": \"GET\", \"url\": \"https://v22-services.hub.wine/xml/CWFR-DATAFEEDFO-1E7712/data-backup/huborganisation\"}]"
+  },
+  {
+    "ParameterKey": "MaxEventAge",
+    "ParameterValue": "7200"
+  },
+  {
+    "ParameterKey": "MaxRetryAttempts",
+    "ParameterValue": "5"
+  },
+  {
+    "ParameterKey": "SchedulerState",
+    "ParameterValue": "ENABLED"
+  }
+]
