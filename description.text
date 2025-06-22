@@ -1,0 +1,5 @@
+Template	What it does
+vpc.yaml	Creates VPC + subnets; exports public/private IDs
+db.yaml	Imports private subnets; deploys RDS; exports AZ
+bastionhost.yaml	Imports public subnets + RDS AZ; deploys EC2 in same AZ 
+all 
