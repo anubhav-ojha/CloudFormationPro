@@ -102,6 +102,29 @@ These include visual representations of:
 - VPC layout setup
 - EventBridge flow
 
+The VPC stack deploys the following components:
+
+### 🌐 Public Layer:
+- **Internet Gateway**: Provides internet access for public resources.
+- **Public Subnets (x3)**: Subnets exposed to the internet for resources like load balancers.
+- **Route Table**: Configured with a route to the Internet Gateway.
+- **Network ACL**: Allow rules for HTTP, HTTPS, and SSH traffic.
+
+### 🔒 Private Layer:
+- **NAT Gateway**: Provides outbound internet access for private resources (with Elastic IP in one AZ).
+- **Private Subnets (x3)**: Subnets not directly exposed to the internet for resources like databases.
+- **Route Table**: Routes traffic through the NAT Gateway for internet access.
+- **Network ACL**: Restricted ingress/egress for better security.
+
+### 🔗 Connectivity:
+- **VPC Endpoints**: Allows secure communication with AWS services (SSM, SQS, Secrets Manager, etc.) without public internet.
+- **Security Groups**: Assigned to Lambda, Bastion, and RDS for access control and security.
+
+This setup ensures a secure, scalable, and highly available network architecture for your resources.
+
+## Architecture Diagram
+![VPC Architecture](./Docs/architecture-diagram/VPC1.drawio.png)
+
 ## 📚 Documentation
 
 Each infrastructure component has its own README file:
